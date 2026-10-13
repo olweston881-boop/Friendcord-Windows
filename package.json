@@ -1,0 +1,25 @@
+{
+  "name": "friendcord",
+  "version": "1.0.0",
+  "description": "Friendcord desktop app for Windows",
+  "main": "main.js",
+  "author": "Friendcord",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "node make-icon.js && electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.friendcord.app",
+    "productName": "Friendcord",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "package.json"],
+    "artifactName": "Friendcord-Setup.${ext}",
+    "win": { "target": "nsis", "icon": "build/icon.png" },
+    "nsis": { "oneClick": true, "perMachine": false, "createDesktopShortcut": true }
+  }
+}
