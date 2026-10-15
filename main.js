@@ -1,5 +1,5 @@
 // Friendcord desktop app: a window that opens your Friendcord site.
-const { app, BrowserWindow, shell, session } = require('electron');
+const { app, BrowserWindow, shell, session, desktopCapturer, dialog } = require('electron');
 
 // If your site address ever changes, change it here and rebuild.
 const SITE_URL = 'https://gama-p0e9.onrender.com';
@@ -46,12 +46,30 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(() => {
-  // Only your site may use the microphone (for voice channels); everything else is denied
+  // Only your site may use the microphone and screen sharing (for voice channels); everything else is denied
+  const allowed = p => p === 'media' || p === 'display-capture';
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
-    callback(permission === 'media' && (details.requestingUrl || '').startsWith(ORIGIN));
+    callback(allowed(permission) && (details.requestingUrl || '').startsWith(ORIGIN));
   });
   session.defaultSession.setPermissionCheckHandler((wc, permission, origin) => {
-    return permission === 'media' && (origin || '').startsWith(ORIGIN);
+    return allowed(permission) && (origin || '').startsWith(ORIGIN);
+  });
+  // Screen sharing: ask which screen to share (Electron has no built-in picker)
+  session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
+    try {
+      const sources = await desktopCapturer.getSources({ types: ['screen'] });
+      if (!sources.length) return callback({});
+      let pick = sources[0];
+      if (sources.length > 1) {
+        const r = await dialog.showMessageBox(win, {
+          type: 'question', title: 'Share screen', message: 'Which screen do you want to share?',
+          buttons: sources.map((s, i) => 'Screen ' + (i + 1)).concat('Cancel'), cancelId: sources.length
+        });
+        if (r.response >= sources.length) return callback({});
+        pick = sources[r.response];
+      }
+      callback({ video: pick });
+    } catch (e) { callback({}); }
   });
   createWindow();
 });
